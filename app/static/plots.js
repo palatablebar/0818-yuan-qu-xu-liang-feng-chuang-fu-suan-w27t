@@ -19,14 +19,18 @@ export function visualize(report, selected) {
   target.replaceChildren();
   if (!row) { target.append(element('p','该分组暂无计算值')); return; }
   const {evidence:e, value, expected, unit} = row.measure;
-  render(target, e, value, expected, unit);
+  render(target, e, value, expected, unit, row.measure.blocking);
 }
 
-function render(target,e,value,expected,unit) {
+function render(target,e,value,expected,unit,blocking=[]) {
   const points=zone(target,'peak-points');
   for(const [start,kw] of Object.entries(e.windows)) {
     const peak=Number(start)===e.peak_start_min;
     const point=zone(points,`peak-point ${peak?'peak-winner':''}`,`${start} min`);
     fill(point,kw,value,`${kw} kW`);
+  }
+  for(const item of blocking) {
+    const point=zone(points,'peak-point peak-blocked',`${item.window_start_min} min`);
+    point.append(element('span',`缺测 · 已到 ${item.arrived_total} kW`,{class:'peak-blocked-note'}));
   }
 }

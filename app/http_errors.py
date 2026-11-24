@@ -20,6 +20,18 @@ LABELS = {
 }
 
 
+def describe(error):
+    """把阻断签发的分组与记录写进可读信息，便于原样交接。"""
+    blocking = (getattr(error, "details", None) or {}).get("blocking") or []
+    if error.code == "UNRESOLVED_ISSUES" and blocking:
+        parts = []
+        for item in blocking:
+            records = "、".join(item.get("records") or []) or "—"
+            parts.append(f"分组 {item.get('case')} 缺测窗口已到读数达到峰值（记录 {records}）")
+        return "存在待处理差异 · " + "；".join(parts)
+    return LABELS.get(error.code, error.code)
+
+
 def response(error):
     code = error.code
     status = (
@@ -31,4 +43,7 @@ def response(error):
             else 413 if code == "FILE_TOO_LARGE" else 422
         )
     )
-    return jsonify(code=code, message=LABELS.get(code, code)), status
+    payload = dict(code=code, message=describe(error))
+    if getattr(error, "details", None):
+        payload["details"] = error.details
+    return jsonify(payload), status

@@ -12,15 +12,19 @@ def evaluate(rows, stage):
         "case": rows[0]["case"],
         "records": [r["record"] for r in rows],
         "status": "READY",
+        "coverage": [],
     }
     try:
         case["prep"], payload = prepare(rows)
+        case["coverage"] = case["prep"]["details"]["coverage"]
         if stage >= 3:
             case["measure"] = compute(payload)
         if stage >= 4:
             case.update(policy(case["measure"]))
     except DomainIssue as error:
         case["status"] = error.code
+        if error.details and "coverage" in error.details:
+            case["coverage"] = error.details["coverage"]
     return case
 
 

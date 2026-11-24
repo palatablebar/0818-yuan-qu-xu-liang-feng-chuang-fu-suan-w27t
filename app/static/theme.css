@@ -52,3 +52,6 @@ body.wave {margin:0;background:var(--bg);color:var(--ink);font:var(--size)/1.55 
 .peak-point {display:grid;grid-template-columns:5.5em 1fr;align-items:center}
 .peak-point .mark-piece {width:max(min(4.5em,100%),var(--part));padding:5px 8px;border-radius:24px;background:var(--button);color:var(--ink)}
 .peak-winner .mark-piece {background:var(--accent);color:var(--surface);font-weight:700}
+
+.peak-blocked .mark-piece {background:var(--surface);border:1px dashed var(--accent)}
+.peak-blocked-note {grid-column:2;font-size:.85em;color:var(--accent)}

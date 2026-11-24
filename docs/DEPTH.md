@@ -29,9 +29,16 @@
 | TRAP-16 | 引号未闭合时拒收文件 | `app/intake/reader.py` | `tests/test_intake.py::test_unclosed_quote_invalidates_source` |
 | TRAP-18 | 区分空文件、全空白和仅表头 | `app/intake/reader.py` | `tests/test_intake.py::test_empty_states_have_distinct_causes` |
 | TRAP-26 | 拒绝旧版本复核 | `app/review/store.py` | `tests/test_review.py::test_review_optimistic_lock` |
+| TRAP-27 | 缺测窗口留覆盖记录，已到读数达到候选峰值时阻止签发 | `app/modules/prepare.py`、`app/modules/calculate.py`、`app/modules/reconcile.py` | `tests/test_coverage.py` |
 
 ## 领域反例
 
 minute 使用统一 UTC 时间原点。每个分表每窗接受一份读数，重复数值合并，冲突数值隔离。缺任何注册表的窗口不能参与峰值。
 
-逐组预期结论见 `tests/test_policy.py`，计算过程证据见 `tests/test_calculate.py`。
+缺测窗口即使只少一只表，也要在 `coverage` 中保留窗口区间、注册表、已到表、缺失表、已到合计和逐条读数记录键；窗口不参与峰值，但依据不随计算值一起丢弃。
+
+若某个缺测窗口的已到读数已经不低于当前完整窗口的候选峰值，`measure.blocking` 会列出该窗口，`balance.blocking` 会带上业务分组与记录键，`balance.releasable` 为假，`PATCH` 签发返回 `UNRESOLVED_ISSUES` 并指出分组与记录。否则可带覆盖范围放行。
+
+同一来源字节重跑复用同一批次，不新增批次，也不覆盖已签发批次的复核证据。
+
+逐组预期结论见 `tests/test_policy.py`，计算过程证据见 `tests/test_calculate.py`，缺测覆盖与签发门禁见 `tests/test_coverage.py`。

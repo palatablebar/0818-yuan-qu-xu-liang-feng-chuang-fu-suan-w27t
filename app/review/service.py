@@ -50,5 +50,9 @@ def review(store, run_id, values):
     if current["status"] == "APPROVED":
         raise DomainIssue("RUN_FINALIZED")
     if status == "APPROVED" and not current["report"]["balance"]["releasable"]:
-        raise DomainIssue("UNRESOLVED_ISSUES")
+        blocking = current["report"]["balance"].get("blocking") or []
+        raise DomainIssue(
+            "UNRESOLVED_ISSUES",
+            {"blocking": blocking} if blocking else None,
+        )
     return store.revise(run_id, revision, status, note.strip(), now())

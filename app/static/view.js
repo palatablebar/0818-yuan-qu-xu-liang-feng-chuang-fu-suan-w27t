@@ -1,7 +1,8 @@
 import {element, pretty} from './client.js';
 
-const labels = {READY:'通过', MISMATCH:'差异待复核', PENDING:'待复核', APPROVED:'已签发', HELD:'已暂缓'};
-const headers = ['业务分组', '输入行', '计算值', '参考值', '判定'];
+const labels = {READY:'通过', MISMATCH:'差异待复核', PENDING:'待复核', APPROVED:'已签发', HELD:'已暂缓',
+  BLOCKED_INCOMPLETE_WINDOW:'缺测窗口阻断', INCOMPLETE_WINDOW:'已附覆盖记录'};
+const headers = ['业务分组', '输入行', '计算值', '参考值', '覆盖', '判定'];
 
 export function badge(status) {
   return element('span', labels[status] || status, {class:'badge', 'data-result':status, title: status});
@@ -31,15 +32,25 @@ export function snapshot(report, selected, stage) {
       const button = element('button',row.case,{type:'button','data-case':row.case,'aria-pressed':String(row.case===selected)});
       tr.insertCell().append(button);
       [row.records.length, row.measure?.value ?? '—', row.measure?.expected ?? '—'].forEach(value=>tr.insertCell().textContent=value);
+      const covered = row.coverage?.length ?? 0;
+      const blocking = row.measure?.blocking?.length ?? 0;
+      tr.insertCell().textContent = covered ? `${covered} 窗${blocking ? ` · ${blocking} 阻断` : ''}` : '—';
       tr.insertCell().append(badge(row.status));
     }
   }
   table.createTHead().append(head);
   const picked = report.cases?.find(row=>row.case===selected);
   document.querySelector('#detail-title').textContent = picked ? `分组 ${picked.case}` : '采信摘要';
-  const shown = picked ? picked.measure?.evidence ?? picked.prep?.details ?? {原因:picked.status} : stats.reasons;
+  const shown = picked ? {
+    ...(picked.measure?.evidence ?? picked.prep?.details ?? {原因:picked.status}),
+    ...(picked.coverage?.length ? {覆盖记录:picked.coverage} : {}),
+    ...(picked.measure?.blocking?.length ? {阻断签发:picked.measure.blocking} : {}),
+  } : stats.reasons;
   document.querySelector('#detail').textContent = pretty(shown);
-  document.querySelector('#counts').textContent = report.balance ? `行数 ${report.balance.accounted}/${report.balance.input} · ${report.balance.ready} 组通过` : `采信 ${stats.accepted} 行 · 隔离 ${stats.rejected} 行`;
+  const blocked = report.balance?.blocking?.length ?? 0;
+  document.querySelector('#counts').textContent = report.balance
+    ? `行数 ${report.balance.accounted}/${report.balance.input} · ${report.balance.ready} 组通过${blocked ? ` · ${blocked} 组阻断签发` : ''}`
+    : `采信 ${stats.accepted} 行 · 隔离 ${stats.rejected} 行`;
 }
 
 export function history(items, active) {
